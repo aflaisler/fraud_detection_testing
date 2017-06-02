@@ -43,6 +43,7 @@ class RFmodel(object):
         df['dict_elements'] = df.previous_payouts.map(
             lambda x: 0 if '[]' else np.size(x))
         df.reset_index(drop=1, inplace=True)
+        self.df_full = df.copy()
         if y_name:
             col_to_keep = ['eur', 'gbp', 'ach', 'check', 'missing_payment', 'dict_elements', 'gts',
                            'has_logo', 'user_type', 'delivery_method', 'org_facebook', 'org_twitter', 'has_analytics', 'fraud']
@@ -50,6 +51,7 @@ class RFmodel(object):
             df_.reset_index(drop=1, inplace=True)
             y = df_.pop(y_name).values
             X = df_.values
+            X = X.astype(int)
             self.X, self.y = X, y
             self.df = df_.copy()
             return X, y
@@ -57,8 +59,10 @@ class RFmodel(object):
             col_to_keep = ['eur', 'gbp', 'ach', 'check', 'missing_payment', 'dict_elements', 'gts',
                            'has_logo', 'user_type', 'delivery_method', 'org_facebook', 'org_twitter', 'has_analytics']
             df_ = df.loc[:, col_to_keep]
+
             df_.reset_index(drop=1, inplace=True)
             X = df_.values
+            X = X.astype(int)
             self.X = X
             self.df = df_.copy()
             return X
@@ -114,7 +118,7 @@ class RFmodel(object):
 
     def fit(self, filepath, gridsearch=False):
         self.load_data(filepath)
-        X, y = self.prepare_data(self.df, y_name='fraud')
+        X, y = self.prepare_data(self.df_full, y_name='fraud')
         # grid search RF
         params_rf = {'n_jobs': [-1], 'n_estimators': [50, 100, 250], 'max_depth': [
             1, 2, 5], 'min_samples_split': [2, 4], 'random_state': [50]}
@@ -142,6 +146,7 @@ if __name__ == '__main__':
     # Fit the data
     model.fit('../../data/data.json', gridsearch=0)
     model.df
+    model.df_full
     # Test
     # pd.DataFrame(model.X[:200, :].reshape(200, 13))
 

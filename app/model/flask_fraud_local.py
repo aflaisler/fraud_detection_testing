@@ -11,6 +11,7 @@ import sys
 import os
 sys.path.insert(0, './model')
 from predict import PredictFraud
+from RandomForest_fraud_detection import RFmodel
 from pandas.io import sql
 import urllib2
 # pd.set_option('display.max_columns', None)
@@ -74,16 +75,24 @@ def insert_db(df, engine, table='fraud'):
     df.to_sql(table, engine, if_exists='append', index=0)
 
 
-def format_data(data_source='fraud', data=None):
-    example_path = './model/ex2.csv'
+def format_data(staging=False):
+    example_path = 'ex2.csv'
     url_path = 'http://galvanize-case-study-on-fraud.herokuapp.com/data_point'
-    model_path = '../data/model.pkl'
-    Pred = PredictFraud(
-        model_path, example_path, url_path, data_source)
-    X_prep = Pred.fit()
-    # have to create a read fct outside
-    df = Pred.read_entry()
-    return df, X_prep
+    model_path = '../../data/model.pkl'
+    if staging:
+        # For local testing
+        md = RFmodel()
+        df_full = pd.read_csv(example_path)
+        test = pd.read_csv(example_path)
+        X_prep = md.prepare_data(test, y_name=False)
+        df = md.df
+    else:
+        md = RFmodel()
+        Pred = PredictFraud(model_path, example_path, url_path)
+        df_full = Pred.read_entry()
+        X_prep = md.prepare_data(df_full, y_name=False)
+        df = md.df
+    return df_full, df, X_prep
 
 
 def make_prediction(df, X_prep):
@@ -93,11 +102,11 @@ def make_prediction(df, X_prep):
     engine = create_engine(
         'postgresql://aymericflaisler:1323@localhost:5432/fraud_prediction')
     # do the prediction
-    model_path = '../data/model.pkl'
+    model_path = '../../data/model.pkl'
     model = pickle.load(open(model_path, 'rb'))
     y_pred = model.predict_proba(X_prep)[0, 1]
     df['fraud_probability'] = y_pred
-    insert_db(df, engine, table='fraud')
+    # insert_db(df, engine, table='fraud')
     # If prediction < 0.17: low
     # If prediction < 0.50: medium
     if y_pred > .5:
@@ -124,12 +133,18 @@ def index():
     else:
         # response = urllib2.urlopen(
         #     'http://galvanize-case-study-on-fraud.herokuapp.com/data_point')
-        # raw_json = json.load(response)
-        df, X_prep = format_data(data_source='fraud')
-        print X_prep
-        df, X, y, risk_band = make_prediction(df, X_prep)
+        # raw_json =  json.load(response)
+        i = 0
+        while i < 200:
+            df_full, df_, X_prep = format_data(staging=False)
+            # print X_prep
+            df, X, y_pred, risk_band = make_prediction(
+                df_full, X_prep)
+            print y_pred, risk_band
+            i += 1
+
         return "Event Name: " + df.name.to_string(index=0) + "<br>" + "Venue Name: " + df.venue_name.to_string(index=0) + "<br>" + " Prediction: " + \
-            str(y) + "<br>" + "Risk band: " + risk_band
+            str(y) + "<br>" + "Risk band: " + risk_band + "<br>" + df.to_html()
 
 
 if __name__ == "__main__":

@@ -20,7 +20,7 @@ class PredictFraud(object):
         self.model_path = model_path
         self.example_path = example_path
         self.url_path = url_path
-        self.data_source = data_source
+        self.data_source = 'url'
 
     def read_entry(self):
         '''
@@ -31,13 +31,13 @@ class PredictFraud(object):
             d = json.load(response)
         # elif self.data_source == 'post':
         #     d = data
-        elif self.data_source == 'fraud':
+        elif self.data_source == 'local':
             df_frauder = pd.read_csv(self.example_path, index_col=False)
             df_frauder = df_frauder[df_frauder.iloc[:, 0] != 'acct_type']
             df_frauder.reset_index(inplace=True, drop=1)
             d = dict(df_frauder.values)
         else:
-            with open(example_path) as data_file:
+            with open(self.example_path) as data_file:
                 d = json.load(data_file)
         df = pd.DataFrame()
         df_ = pd.DataFrame(dict([(k, pd.Series(v)) for k, v in d.iteritems() if (
@@ -78,11 +78,18 @@ if __name__ == '__main__':
     md = RFmodel()
     X_prep = md.prepare_data(test, y_name=False)
     df = md.df
+    model = pickle.load(open(model_path, 'rb'))
+    model.predict_proba(X_prep)
 
     # Test with URL data_source=url (params are:'fraud', 'df', 'url')
+    md = RFmodel()
     mdPred = PredictFraud(
         model_path, example_path, url_path, data_source='url')
     df = mdPred.read_entry()
+    X_prep = md.prepare_data(df, y_name=False)
+    model = pickle.load(open(model_path, 'rb'))
+    model.predict_proba(X_prep)
+
     X_prep = mdPred.fit()
     mdPred.df
     model = pickle.load(open(model_path, 'rb'))
