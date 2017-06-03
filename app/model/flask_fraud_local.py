@@ -134,17 +134,12 @@ def index():
         # response = urllib2.urlopen(
         #     'http://galvanize-case-study-on-fraud.herokuapp.com/data_point')
         # raw_json =  json.load(response)
-        i = 0
-        while i < 200:
-            df_full, df_, X_prep = format_data(staging=False)
-            # print X_prep
-            df, X, y_pred, risk_band = make_prediction(
-                df_full, X_prep)
-            print y_pred, risk_band
-            i += 1
-
-        return "Event Name: " + df.name.to_string(index=0) + "<br>" + "Venue Name: " + df.venue_name.to_string(index=0) + "<br>" + " Prediction: " + \
-            str(y) + "<br>" + "Risk band: " + risk_band + "<br>" + df.to_html()
+        df_full, df_, X_prep = format_data(staging=False)
+        print X_prep
+        df, X, y_pred, risk_band = make_prediction(
+            df_full, X_prep)
+        print y_pred, risk_band
+        return "Event Name: " + df.name.to_string(index=0) + "<br>" + "Venue Name: " + df.venue_name.to_string(index=0) + "<br>" + " Prediction: " + str(y_pred) + "<br>" + "Risk band: " + risk_band
 
 
 if __name__ == "__main__":
