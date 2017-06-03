@@ -104,9 +104,10 @@ def make_prediction(df, X_prep):
     # do the prediction
     model_path = '../../data/model.pkl'
     model = pickle.load(open(model_path, 'rb'))
+    y = model.predict_proba(X_prep)
     y_pred = model.predict_proba(X_prep)[0, 1]
     df['fraud_probability'] = y_pred
-    # insert_db(df, engine, table='fraud')
+    insert_db(df, engine, table='fraud')
     # If prediction < 0.17: low
     # If prediction < 0.50: medium
     if y_pred > .5:
@@ -115,7 +116,7 @@ def make_prediction(df, X_prep):
         risk_band = "Medium"
     else:
         risk_band = "Low"
-    return df, X_prep, y_pred, risk_band
+    return df, X_prep, y_pred, risk_band, y
 
 # Flask can respond differently to various HTTP methods
 # By default only GET allowed, but you can change that using the methods
@@ -136,10 +137,16 @@ def index():
         # raw_json =  json.load(response)
         df_full, df_, X_prep = format_data(staging=False)
         print X_prep
-        df, X, y_pred, risk_band = make_prediction(
+        df, X, y_pred, risk_band, y = make_prediction(
             df_full, X_prep)
-        print y_pred, risk_band
-        return "Event Name: " + df.name.to_string(index=0) + "<br>" + "Venue Name: " + df.venue_name.to_string(index=0) + "<br>" + " Prediction: " + str(y_pred) + "<br>" + "Risk band: " + risk_band
+        print y_pred, risk_band, y
+        return "Event Name: " + df.name.to_string(index=0) + "<br>" \
+            + "Venue Name: " + df.venue_name.to_string(index=0) + "<br>" \
+            + " Prediction: " + str(y_pred) + "<br>" \
+            + "Risk band: " + risk_band + "<br>" \
+            + "X_prep" + str(X_prep) + "<br>" \
+            + df_.to_html() + "<br>" \
+            + "Probabilities" + str(y)
 
 
 if __name__ == "__main__":
