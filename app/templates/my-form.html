@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<body>
+  <h1>Game on! Play with the categorical data to find which ones impact the risk band:</h1>
+  <form action="." method="POST">
+    <h3>ACH Transaction (1 for yes, 0 for no):
+    <input type="number" name="ach" value={{ df_.ach[0] }}></h3>
+    <h3>Check Transaction (1 for yes, 0 for no):
+    <input type="number" name="check" value={{ df_.check[0] }}></h3>
+    <h3>Missing payment (1 for yes, 0 for no):
+    <input type="number" name="miss" value={{ df_.missing_payment[0] }}></h3>
+    <h3>Has Logo (1 for yes, 0 for no):
+    <input type="number" name="logo" value={{ df_.has_logo[0] }}></h3>
+    <h3>Has Analytics (1 for yes, 0 for no):
+    <input type="number" name="analytics" value={{ df_.has_analytics[0] }}></h3>
+    <input type="submit" name="my-form" value="Send">
+  </form>
+</body>
+
+</html>

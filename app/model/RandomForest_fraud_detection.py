@@ -3,7 +3,7 @@ from sklearn.ensemble import GradientBoostingClassifier as GDBC
 from sklearn.ensemble import AdaBoostClassifier as ADR
 from sklearn.grid_search import GridSearchCV
 from sklearn.metrics import make_scorer, accuracy_score, recall_score, f1_score, precision_score, roc_curve
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import datetime
@@ -112,7 +112,7 @@ class RFmodel(object):
         plt.title('ROC Curve')
         plt.legend()
         dt_ = datetime.datetime.now().strftime('%d%b%y_%H%M')
-        plt.savefig("./data/" + dt_ + ".png")
+        plt.savefig("../../data/" + dt_ + ".png")
         plt.show()
         pass
 
@@ -120,8 +120,9 @@ class RFmodel(object):
         self.load_data(filepath)
         X, y = self.prepare_data(self.df_full, y_name='fraud')
         # grid search RF
-        params_rf = {'n_jobs': [-1], 'n_estimators': [50, 100, 250], 'max_depth': [
-            1, 2, 5], 'min_samples_split': [2, 4], 'random_state': [50]}
+        rand = np.random.randint(100)
+        params_rf = {'n_jobs': [-1], 'n_estimators': [50, 100], 'max_depth': [
+            1, 2, 5, 8], 'min_samples_split': [2], 'random_state': [rand]}
         # "criterion": ["gini", "entropy"],
         # 'sample_leaf_options': [1, 5, 10, 50],
         # conditional gridsearch
@@ -130,7 +131,7 @@ class RFmodel(object):
         else:
             self.best_est = RF().fit(X, y)
         self.scores_for_best_model(self.best_est, X, y)
-        #self.plot_roc_curve(self.best_est, X, y)
+        self.plot_roc_curve(self.best_est, X, y)
 
     def predict(self, X_):
         model = self.best_est
@@ -144,9 +145,10 @@ if __name__ == '__main__':
     X, y = model.prepare_data(x, y_name='fraud')
     # pd.DataFrame(x.iloc[14336, :]).T.to_csv('ex2.csv')
     # Fit the data
-    model.fit('../../data/data.json', gridsearch=0)
-    model.df
-    model.df_full
+    model.fit('../../data/data.json', gridsearch=1)
+
+    # model.df
+    # model.df_full
     # Test
     # pd.DataFrame(model.X[:200, :].reshape(200, 13))
 
@@ -154,14 +156,15 @@ if __name__ == '__main__':
     pickle.dump(model.best_est, open('../../data/model.pkl', 'wb'))
 
     # Make predictions
-    model.best_est.predict_proba(model.X[:200, :].reshape(200, 13))
+    np.round_(model.best_est.predict_proba(
+        model.X[:200, :].reshape(200, 13)), 3)
 
     md = pickle.load(open('../../data/model.pkl', 'rb'))
 
     # md.predict(model.X[:200, :].reshape(200, 13))
     # md.predict(X[2])
     # md.predict_proba(model.X[:200, :].reshape(200, 13))
-    # model.plot_roc_curve()
+    model.plot_roc_curve(model.best_est, X, y)
     #
     # pd.DataFrame(md.predict(model.X)).to_clipboard()
     # pd.DataFrame(md.predict_proba(model.X)).to_clipboard()

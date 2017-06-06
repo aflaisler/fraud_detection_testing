@@ -90,8 +90,8 @@ if __name__ == '__main__':
     model = pickle.load(open(model_path, 'rb'))
     model.predict_proba(X_prep)
 
-    X_prep = mdPred.fit()
-    mdPred.df
-    model = pickle.load(open(model_path, 'rb'))
-    model.predict_proba(X_prep)
-    y_pred = model.predict(X_prep)
+    # X_prep = mdPred.fit()
+    # mdPred.df
+    # model = pickle.load(open(model_path, 'rb'))
+    # model.predict_proba(X_prep)
+    # y_pred = model.predict(X_prep)
