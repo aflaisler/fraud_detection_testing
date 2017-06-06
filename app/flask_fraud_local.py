@@ -131,7 +131,8 @@ def make_prediction(df, X_prep):
 
 @app.route("/")
 def my_form():
-    return df_.to_html() + "Event Name: " + df.name.to_string(index=0) + "<br>" \
+    return render_template("intro.html") + "<br>" \
+        + df_.to_html() + "Event Name: " + df.name.to_string(index=0) + "<br>" \
         + "Venue Name: " + df.venue_name.to_string(index=0) + "<br>" \
         + "Risk Band Prediction: " + risk_band + "<br>" \
         + "Probability of Fraud: " + str(round(y[0][1], 3) * 100) + "%" \
@@ -157,7 +158,7 @@ def index():
         y2 = model.predict_proba(X_prep)
         risk_band2 = risk_band_(round(y2[0][1], 3))
         # my_form()
-        return df_.to_html() + "Event Name: " + df.name.to_string(index=0) + "<br>" \
+        return render_template("intro.html") + "<br>" + df_.to_html() + "Event Name: " + df.name.to_string(index=0) + "<br>" \
             + "Venue Name: " + df.venue_name.to_string(index=0) + "<br>" \
             + "Risk Band Prediction: " + risk_band2 + "<br>" \
             + "Probability of Fraud: " + str(round(y2[0][1], 3) * 100) + "%" \
