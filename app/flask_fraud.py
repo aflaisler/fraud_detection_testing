@@ -177,4 +177,10 @@ def index():
 
 
 if __name__ == "__main__":
+    md = RFmodel()
+    df_full, df_, X_prep = format_data(staging=False)
+    print X_prep
+    df, X, y_pred, risk_band, y = make_prediction(
+        df_full, X_prep)
+    print y_pred, risk_band, y
     app.run(host='0.0.0.0', debug=True)
