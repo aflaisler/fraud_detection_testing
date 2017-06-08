@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, render_template
 from sqlalchemy import create_engine
 import psycopg2
 import pandas as pd
@@ -8,8 +8,10 @@ import json
 import random
 import cPickle as pickle
 import sys
+import os
 sys.path.insert(0, './model')
-from predict import PredictFraud
+# from predict import PredictFraud
+from RandomForest_fraud_detection import RFmodel
 from pandas.io import sql
 import urllib2
 # pd.set_option('display.max_columns', None)
@@ -69,20 +71,56 @@ def create_table(cur):
     conn.close()
 
 
+def prepare(url="http://galvanize-case-study-on-fraud.herokuapp.com/data_point"):
+    '''
+    Read single entry from http://galvanize-case-study-on-fraud.herokuapp.com/data_point
+    '''
+    response = urllib2.urlopen(url)
+    d = json.load(response)
+    df = pd.DataFrame()
+    df_ = pd.DataFrame(dict([(k, pd.Series(v)) for k, v in d.iteritems() if (
+        k != 'ticket_types') and (k != 'previous_payouts')]))
+    df_['ticket_types'] = str(d['ticket_types'])
+    df_['previous_payouts'] = str(d['previous_payouts'])
+    df = df.append(df_)
+    df.reset_index(drop=1, inplace=True)
+    df.fillna(0, inplace=True)
+    return df
+
+
 def insert_db(df, engine, table='fraud'):
     df.to_sql(table, engine, if_exists='append', index=0)
 
 
-def format_data(data_source='url', data=None):
-    example_path = '../data/test_script_example.json'
+def format_data(staging=False):
+    example_path = 'ex2.csv'
     url_path = 'http://galvanize-case-study-on-fraud.herokuapp.com/data_point'
     model_path = '../data/model.pkl'
-    Pred = PredictFraud(
-        model_path, example_path, url_path, data_source)
-    X_prep = Pred.fit()
-    # have to create a read fct outside
-    df = Pred.read_entry()
-    return df, X_prep
+    if staging:
+        # For local testing
+        md = RFmodel()
+        df_full = pd.read_csv(example_path)
+        test = pd.read_csv(example_path)
+        X_prep = md.prepare_data(test, y_name=False)
+        df = md.df
+    else:
+        md = RFmodel()
+        df_full = prepare(url_path)
+        X_prep = md.prepare_data(df_full, y_name=False)
+        df = md.df
+    return df_full, df, X_prep
+
+
+def risk_band_(y_pred):
+    # If prediction < 0.17: low
+    # If prediction < 0.50: medium
+    if y_pred > .5:
+        risk_band = "High"
+    elif (y_pred > .17) and (y_pred <= .5):
+        risk_band = "Medium"
+    else:
+        risk_band = "Low"
+    return risk_band
 
 
 def make_prediction(df, X_prep):
@@ -94,40 +132,48 @@ def make_prediction(df, X_prep):
     # do the prediction
     model_path = '../data/model.pkl'
     model = pickle.load(open(model_path, 'rb'))
+    y = model.predict_proba(X_prep)
     y_pred = model.predict_proba(X_prep)[0, 1]
     df['fraud_probability'] = y_pred
     insert_db(df, engine, table='fraud')
-    # If prediction < 0.17: low
-    # If prediction < 0.50: medium
-    if y_pred > .5:
-        risk_band = "High"
-    elif (y_pred > .17) and (y_pred < .5):
-        risk_band = "Medium"
-    else:
-        risk_band = "Low"
-    return df, X_prep, y_pred, risk_band
+    risk_band = risk_band_(y_pred)
+    return df, X_prep, y_pred, risk_band, y
+
 
 # Flask can respond differently to various HTTP methods
 # By default only GET allowed, but you can change that using the methods
 # argument
 
 
+@app.route("/")
+def my_form():
+    return render_template("intro.html") + "<br>" + "<h2>Live data:</h2>" \
+        + df_.to_html() + "Event Name: " + df.name.to_string(index=0) + "<br>" \
+        + "Venue Name: " + df.venue_name.to_string(index=0) + "<br>" \
+        + "Risk Band Prediction: " + "<font color='FF0000'>" + risk_band + "</font>" + "<br>" \
+        + "Probability of Fraud: " + "<font color='FF0000'>" + str(round(y[0][1], 3) * 100) + "%" + "</font>"\
+        + "<br>" + render_template("my-form.html", df_=df_)
+
+
 @app.route("/", methods=['GET', 'POST'])
 def index():
     if request.method == "POST":
-        json_dict = request.get_json()
-        description = json_dict['description']
-        # json.load(open(example_path))['description']
-        data = {'description': description}
-        return "from json: " + str(data)
-    else:
-        # response = urllib2.urlopen(
-        #     'http://galvanize-case-study-on-fraud.herokuapp.com/data_point')
-        # raw_json = json.load(response)
-        df, X_prep = format_data(data_source='url')
-        df, X, y, risk_band = make_prediction(df, X_prep)
-        return "Event Name: " + df.name.to_string(index=0) + "<br>" + "Venue Name: " + df.venue_name.to_string(index=0) + "<br>" + " Prediction: " + \
-            str(y) + "<br>" + "Risk band: " + risk_band
+        df_.ach = request.form['ach']
+        df_.check = request.form['check']
+        df_.missing_payment = request.form['miss']
+        df_.has_logo = request.form['logo']
+        df_.has_analytics = request.form['analytics']
+        X_prep = df_.values
+        model_path = '../data/model.pkl'
+        model = pickle.load(open(model_path, 'rb'))
+        y2 = model.predict_proba(X_prep)
+        risk_band2 = risk_band_(round(y2[0][1], 3))
+        # my_form()
+        return render_template("intro.html") + "<br>" + "<h2>Live data:</h2>" + df_.to_html() + "Event Name: " + df.name.to_string(index=0) + "<br>" \
+            + "Venue Name: " + df.venue_name.to_string(index=0) + "<br>" \
+            + "Risk Band Prediction: " + "<font color='FF0000'>" + risk_band2 + "</font>" + "<br>" \
+            + "Probability of Fraud: " + "<font color='FF0000'>" + str(round(y2[0][1], 3) * 100) + "%" + "</font>"\
+            + "<br>" + render_template("my-form.html", df_=df_)
 
 
 if __name__ == "__main__":
