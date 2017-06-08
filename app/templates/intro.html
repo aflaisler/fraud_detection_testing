@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<body>
+  <h2>The fraud detection app:</h2>
+  <p>The aim of the program is to flag potential new fraud for further review as it comes in so it can be triaged by most pressing (and costly) transactions.</p>
+  <h3>How it works?</h3>
+  <p>Given a JSON file with 137k transactions that are fraud or not, and other features, create a web based front-end with machine learning back end to enable quick triage of potential new fraud.</p>
+  <h3>Modeling + Evaluation</h3>
+  <p> After EDA, having high dimensional training set with categorical, numerical and discret values, the app is based on the RandomForest Classifier. Once trained (GridSearched + CrossValidated) the model is stored using cPickle (the c version of Pickle
+    allows a loading time
+    < 3sec.) and reloaded and each GET/POST requests.</p>
+      <h3><font color="FF0000">Final performance of the model:</font></h3>
+      <p>F1 score: 0.59, Precision: 0.93, Recall: 0.43, Accuracy: 0.95</p>
+      <img src="./static/ROC.png"></img>
+      <h3>Web app features:</h3>
+      <p>Registers service at POST /register.<br> Accepts input records on POST /score endpoint.<br> Gives triage label: low, medium, high risk.<br> Record predictions with attribute from the feature vectors in a postgresql db.<br> Host the app on AWS EC2.</p>
+</body>
+
+</html>

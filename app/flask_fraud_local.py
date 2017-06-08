@@ -10,7 +10,7 @@ import cPickle as pickle
 import sys
 import os
 sys.path.insert(0, './model')
-from predict import PredictFraud
+# from predict import PredictFraud
 from RandomForest_fraud_detection import RFmodel
 from pandas.io import sql
 import urllib2
@@ -71,6 +71,23 @@ def create_table(cur):
     conn.close()
 
 
+def prepare(url="http://galvanize-case-study-on-fraud.herokuapp.com/data_point"):
+    '''
+    Read single entry from http://galvanize-case-study-on-fraud.herokuapp.com/data_point
+    '''
+    response = urllib2.urlopen(url)
+    d = json.load(response)
+    df = pd.DataFrame()
+    df_ = pd.DataFrame(dict([(k, pd.Series(v)) for k, v in d.iteritems() if (
+        k != 'ticket_types') and (k != 'previous_payouts')]))
+    df_['ticket_types'] = str(d['ticket_types'])
+    df_['previous_payouts'] = str(d['previous_payouts'])
+    df = df.append(df_)
+    df.reset_index(drop=1, inplace=True)
+    df.fillna(0, inplace=True)
+    return df
+
+
 def insert_db(df, engine, table='fraud'):
     df.to_sql(table, engine, if_exists='append', index=0)
 
@@ -88,8 +105,9 @@ def format_data(staging=False):
         df = md.df
     else:
         md = RFmodel()
-        Pred = PredictFraud(model_path, example_path, url_path)
-        df_full = Pred.read_entry()
+        # Pred = PredictFraud(model_path, example_path, url_path)
+        # df_full = Pred.read_entry()
+        df_full = prepare(url_path)
         X_prep = md.prepare_data(df_full, y_name=False)
         df = md.df
     return df_full, df, X_prep
@@ -100,7 +118,7 @@ def risk_band_(y_pred):
     # If prediction < 0.50: medium
     if y_pred > .5:
         risk_band = "High"
-    elif (y_pred > .17) and (y_pred < .5):
+    elif (y_pred > .17) and (y_pred <= .5):
         risk_band = "Medium"
     else:
         risk_band = "Low"
@@ -131,11 +149,11 @@ def make_prediction(df, X_prep):
 
 @app.route("/")
 def my_form():
-    return render_template("intro.html") + "<br>" \
+    return render_template("intro.html") + "<br>" + "<h2>Live data:</h2>" \
         + df_.to_html() + "Event Name: " + df.name.to_string(index=0) + "<br>" \
         + "Venue Name: " + df.venue_name.to_string(index=0) + "<br>" \
-        + "Risk Band Prediction: " + risk_band + "<br>" \
-        + "Probability of Fraud: " + str(round(y[0][1], 3) * 100) + "%" \
+        + "Risk Band Prediction: " + "<font color='FF0000'>" + risk_band + "</font>" + "<br>" \
+        + "Probability of Fraud: " + "<font color='FF0000'>" + str(round(y[0][1], 3) * 100) + "%" + "</font>"\
         + "<br>" + render_template("my-form.html", df_=df_)
 
 
@@ -158,10 +176,10 @@ def index():
         y2 = model.predict_proba(X_prep)
         risk_band2 = risk_band_(round(y2[0][1], 3))
         # my_form()
-        return render_template("intro.html") + "<br>" + df_.to_html() + "Event Name: " + df.name.to_string(index=0) + "<br>" \
+        return render_template("intro.html") + "<br>" + "<h2>Live data:</h2>" + df_.to_html() + "Event Name: " + df.name.to_string(index=0) + "<br>" \
             + "Venue Name: " + df.venue_name.to_string(index=0) + "<br>" \
-            + "Risk Band Prediction: " + risk_band2 + "<br>" \
-            + "Probability of Fraud: " + str(round(y2[0][1], 3) * 100) + "%" \
+            + "Risk Band Prediction: " + "<font color='FF0000'>" + risk_band2 + "</font>" + "<br>" \
+            + "Probability of Fraud: " + "<font color='FF0000'>" + str(round(y2[0][1], 3) * 100) + "%" + "</font>"\
             + "<br>" + render_template("my-form.html", df_=df_)
         # return str(X_prep) + "<br>" + processed_text
     # else:

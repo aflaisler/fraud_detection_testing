@@ -159,12 +159,12 @@ if __name__ == '__main__':
     np.round_(model.best_est.predict_proba(
         model.X[:200, :].reshape(200, 13)), 3)
 
-    md = pickle.load(open('../../data/model.pkl', 'rb'))
+    # md = pickle.load(open('../../data/model.pkl', 'rb'))
 
     # md.predict(model.X[:200, :].reshape(200, 13))
     # md.predict(X[2])
     # md.predict_proba(model.X[:200, :].reshape(200, 13))
-    model.plot_roc_curve(model.best_est, X, y)
+    # model.plot_roc_curve(model.best_est, X, y)
     #
     # pd.DataFrame(md.predict(model.X)).to_clipboard()
     # pd.DataFrame(md.predict_proba(model.X)).to_clipboard()
